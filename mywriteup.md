@@ -16,12 +16,12 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 [image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.png
-[image3]: ./examples/sliding_windows.png
-[image4]: ./examples/sliding_window.png
-[image5]: ./examples/heatmaps.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/example2.png
+[image2]: ./examples/2.png
+[image3]: ./examples/3.png
+[image4]: ./examples/4.png
+[image5]: ./examples/5.png
+[image6]: ./examples/6.png
+[image7]: ./examples/7.png
 [video1]: ./project_video.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -38,23 +38,40 @@ You're reading it!
 
 ####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in the cells [9] and [10] of the vehicle_detection_training.ipynb 
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
 ![alt text][image1]
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+I then explored different color spaces and different parameters  with  Color Spaces Exploration, Spatial Binning of Color, Histograms of Color
+1-Color Spaces Exploration
+in this pipline we used Color Spaces Exploration to distinguish the cars from other objects and backgrounds.
+function ‘colorspace_repr’ in cell [4] used to represent an image in 3D color space
+HLS and HSV 3D color space representations make car colors more distinguishable because of saturation. It may be used in features exctraction.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the  Example (spatial size = (8,8)): 
 
 
 ![alt text][image2]
 
+2- Spatial Binning of Color
+Feature vector consisting on raw pixels can be useful for car detection, but instead of using of three color channels of a full resolution image, I decreased resolution to 8 x 8 pixels and applied 'numpy.ravel' function to create a flattened array. Before this, HLS color space conversion was used (function 'bin_spatial' in '2.2. Spatial Binning of Color' section). As stated above, this color space can make car colors more distinguishable.
+![alt text][image3]
+3-Histograms of Color
+Another tool for creation feauture vector is histograms of raw pixel intensity. Concatenating histograms of different color channels we create a pattern of particular number of bins and pixels intensity range. In this project I used HSV color space for building of color channels histograms (function 'color_hist' in '2.3. Histograms of Color'). HSV color space gave a good distinguishable representation of car and non-car images due to in particular its saturation channel.
+
+Here are examples (bins=12):
+![alt text][image4]
+All HSV channels differentiate car and non-car images. From histograms we can see that an image with monotonous colors (2 pictures in the last two rows) gives bigger values for histograms than images which include different colors.
+
 ####2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+I tried various combinations of parameters and This features descriptor in distinction from previous two based on edge detection (of course, it is derivative of color, but not a color itself). HOG can be calculated with 'hog' function from scikit-image library. Deriving hog features is performed in 'get_hog_features' function (section '2.4. Histogram of Oriented Gradients (HOG)').
 
+Here are output examples (rientations - 9, size (in pixels) of a cell - 8, number of cells in each block - 2):
+
+![alt text][image5]
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
 I trained a linear SVM using...
@@ -63,9 +80,20 @@ I trained a linear SVM using...
 
 ####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+With sliding window implementation we extract areas where trained classifier decides given area is a car or not. For sliding window search we have to choose window size, region in an image where window will slide and overlapping parameter. A good idea is to use different window size in different regions of an image (multi-scale windows). Than more windows are used than slower pipeline.
 
-![alt text][image3]
+I applied three window sizes in different regions. My choice is based on:
+
+Different sizes of window allowed to match their size with a car size (which is varied in different distances (position in an image)). Window with bigger sizes are used at the bottom of an image, while the smaller are at the top.
+This creates better covering region of interest on an image with reasonable computational cost.
+Finally, I used the following parameters for sliding windows search:
+
+three window sizes: 1) 64 x 64, 2) 128 x 128, 3) 192 x 192 pixels.
+three regions for searching: x coordinate is the same - (0, 1280), y coordinate: 1) (390, 500), 2) (390, 590), 3) (390, 670).
+three overlapping parameters: 1) (0.5, 0.5), 2) (0.6, 0.5), 3) (0.5, 0.5).
+Here are results:
+
+![alt text][image6]
 
 ####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
@@ -90,7 +118,7 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 
 ### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image5]
+![alt text][image6]
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
 ![alt text][image7]
@@ -103,5 +131,15 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The pipeline for vehicle detection includes a lot of techniques, 
+- Histogram of Oriented Gradients (HOG),
+- color transform and append binned color features
+- histograms of color
+
+the chalenge How to find right combination all elements and hyperparameters which show a good performance.and decrease Оverfitting
+
+I will add more features to get better performance and to let pipeline detect more videos
+the pipeline must be tested in more videos and more conditions
+
+
 
